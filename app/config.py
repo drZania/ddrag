@@ -6,11 +6,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Settings required by the M1 application foundation."""
+    """Settings required by the application foundation."""
 
     app_name: str = "DDRAG"
     app_env: str = "development"
     log_level: str = "INFO"
+    database_url: str = "postgresql+psycopg://ddrag:ddrag_dev_password@127.0.0.1:55432/ddrag"
 
     model_config = SettingsConfigDict(
         env_file=".env",
