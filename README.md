@@ -4,7 +4,7 @@ DDRAG (Drag, Drop, Retrieve, Augment, Generate) is an independent portfolio proj
 
 ## Current Status
 
-Milestone 2, Database, is complete. The repository contains a small FastAPI application with typed environment-based configuration, structured request logging, request IDs, a health endpoint, and a migration-managed PostgreSQL + pgvector foundation.
+Milestone 3, Authentication & User Identity, is complete. The repository contains a small FastAPI application with typed environment-based configuration, structured request logging, request IDs, a health endpoint, a migration-managed PostgreSQL + pgvector foundation, and Argon2id/JWT authentication.
 
 The longer-term technology direction includes document retrieval, augmentation, generation, and evaluation. Those capabilities are planned but are not implemented yet.
 
@@ -18,6 +18,8 @@ py -3.13 -m venv .venv
 python -m pip install -e ".[dev]"
 Copy-Item .env.example .env
 ```
+
+Set a long, random `JWT_SECRET` in `.env` before using registration or login. Passwords must be at least 8 characters; email addresses are trimmed and lowercased.
 
 Run the application:
 
@@ -43,3 +45,4 @@ $env:DATABASE_URL="postgresql+psycopg://ddrag:ddrag_dev_password@127.0.0.1:55432
 ```
 
 See the [development guide](docs/DEVELOPMENT_GUIDE.md), [M1 record](docs/milestones/MILESTONE_01_FOUNDATION.md), and [M2 record](docs/milestones/MILESTONE_02_DATABASE.md) for more detail.
+See the [M3 record](docs/milestones/MILESTONE_03_AUTHENTICATION.md) for the authentication flow and security decisions.

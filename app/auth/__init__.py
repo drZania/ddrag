@@ -1,0 +1,1 @@
+"""Authentication helpers for user identity."""

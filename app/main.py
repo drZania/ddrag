@@ -7,6 +7,7 @@ import uuid
 from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.api.auth import router as auth_router
 from app.config import get_settings
 from app.logging_config import configure_logging, log_request, request_id_context
 
@@ -52,6 +53,7 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
 
 app = FastAPI(title=settings.app_name)
 app.add_middleware(RequestIdMiddleware)
+app.include_router(auth_router)
 
 
 @app.get("/health")

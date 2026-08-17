@@ -5,12 +5,9 @@ from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Settings(BaseSettings):
-    """Settings required by the application foundation."""
+class DatabaseSettings(BaseSettings):
+    """Settings required by database tooling and sessions."""
 
-    app_name: str = "DDRAG"
-    app_env: str = "development"
-    log_level: str = "INFO"
     database_url: str = "postgresql+psycopg://ddrag:ddrag_dev_password@127.0.0.1:55432/ddrag"
 
     model_config = SettingsConfigDict(
@@ -18,6 +15,17 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+
+class Settings(DatabaseSettings):
+    """Settings required by the application."""
+
+    app_name: str = "DDRAG"
+    app_env: str = "development"
+    log_level: str = "INFO"
+    jwt_secret: str
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
 
 
 @lru_cache
