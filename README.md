@@ -4,9 +4,9 @@ DDRAG (Drag, Drop, Retrieve, Augment, Generate) is an independent portfolio proj
 
 ## Current Status
 
-Milestone 3, Authentication & User Identity, is complete. The repository contains a small FastAPI application with typed environment-based configuration, structured request logging, request IDs, a health endpoint, a migration-managed PostgreSQL + pgvector foundation, and Argon2id/JWT authentication.
+Milestones 3 and 4 are complete. The repository contains a small FastAPI application with typed environment-based configuration, structured request logging, request IDs, a health endpoint, a migration-managed PostgreSQL + pgvector foundation, Argon2id/JWT authentication, and authenticated document ingestion management.
 
-The longer-term technology direction includes document retrieval, augmentation, generation, and evaluation. Those capabilities are planned but are not implemented yet.
+M4 provides a document model with authenticated ownership, PostgreSQL migration support, local filesystem storage with UUID-based physical filenames, SHA-256 duplicate detection, a per-user database uniqueness constraint, a 10 MiB upload limit, an allowlist of PDF/plain-text/Markdown/DOCX MIME types, authenticated upload/list/get/delete endpoints, ownership isolation, and database/filesystem cleanup behavior. Extraction, processing, chunking, embeddings, retrieval, augmentation, generation, chat/history, React, application Docker infrastructure, and evaluation remain deferred.
 
 ## Development Setup
 
@@ -46,3 +46,4 @@ $env:DATABASE_URL="postgresql+psycopg://ddrag:ddrag_dev_password@127.0.0.1:55432
 
 See the [development guide](docs/DEVELOPMENT_GUIDE.md), [M1 record](docs/milestones/MILESTONE_01_FOUNDATION.md), and [M2 record](docs/milestones/MILESTONE_02_DATABASE.md) for more detail.
 See the [M3 record](docs/milestones/MILESTONE_03_AUTHENTICATION.md) for the authentication flow and security decisions.
+See the [M4 record](docs/milestones/MILESTONE_04_DOCUMENT_INGESTION.md) for document ownership, storage, API behavior, and verification.

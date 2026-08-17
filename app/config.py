@@ -26,6 +26,8 @@ class Settings(DatabaseSettings):
     jwt_secret: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+    document_storage_path: str = "storage/documents"
+    max_upload_size_bytes: int = 10 * 1024 * 1024
 
 
 @lru_cache

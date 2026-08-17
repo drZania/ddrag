@@ -55,3 +55,11 @@ def test_configuration_loads_from_environment(monkeypatch) -> None:
     assert settings.app_name == "Test DDRAG"
     assert settings.app_env == "test"
     assert settings.log_level == "DEBUG"
+
+
+def test_configuration_exposes_default_upload_size(monkeypatch) -> None:
+    monkeypatch.setenv("JWT_SECRET", "test-secret")
+
+    settings = Settings()
+
+    assert settings.max_upload_size_bytes == 10 * 1024 * 1024
