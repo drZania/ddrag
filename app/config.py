@@ -38,6 +38,7 @@ class Settings(DatabaseSettings):
     chunk_overlap_chars: int = 200
     chunking_version: str = DEFAULT_CHUNKING_VERSION
     embedding_model: str = "qwen3-embedding:0.6b"
+    generation_model: str = "qwen2.5:1.5b"
     ollama_base_url: str = "http://127.0.0.1:11434"
     embedding_dimension: int = EMBEDDING_DIMENSION
     retrieval_default_top_k: int = 5
@@ -49,6 +50,8 @@ class Settings(DatabaseSettings):
             raise ValueError("chunking_version must not be blank")
         if not self.embedding_model.strip():
             raise ValueError("embedding_model must not be blank")
+        if not self.generation_model.strip():
+            raise ValueError("generation_model must not be blank")
         candidate_base_url = self.ollama_base_url.strip()
         if not candidate_base_url:
             raise ValueError("ollama_base_url must not be blank")
