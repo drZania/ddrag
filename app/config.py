@@ -40,6 +40,7 @@ class Settings(DatabaseSettings):
     embedding_model: str = "qwen3-embedding:0.6b"
     ollama_base_url: str = "http://127.0.0.1:11434"
     embedding_dimension: int = EMBEDDING_DIMENSION
+    retrieval_default_top_k: int = 5
 
     @model_validator(mode="after")
     def _validate_chunking_settings(self) -> "Settings":
@@ -56,6 +57,8 @@ class Settings(DatabaseSettings):
             raise ValueError("ollama_base_url must include scheme and host")
         if self.embedding_dimension != EMBEDDING_DIMENSION:
             raise ValueError(f"embedding_dimension must be {EMBEDDING_DIMENSION}")
+        if not 1 <= self.retrieval_default_top_k <= 50:
+            raise ValueError("retrieval_default_top_k must be between 1 and 50")
         return self
 
 
