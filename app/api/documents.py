@@ -17,6 +17,7 @@ from app.chunking import persist_document_chunks
 from app.config import get_settings
 from app.db.models import Document, User
 from app.db.session import get_db
+from app.embeddings import EmbeddingValidationError, OllamaEmbeddingError, embed_document_chunks
 from app.extraction import ExtractionError, extract_text
 from app.storage import delete_document_file, generate_storage_filename, save_document_file, sha256_bytes
 
@@ -263,13 +264,18 @@ async def create_document(
                 overlap=settings.chunk_overlap_chars,
                 chunking_version=settings.chunking_version,
             )
+            embed_document_chunks(session, document)
         except Exception as error:
             session.rollback()
             failed_document = session.get(Document, document.id)
             if failed_document is None:
                 raise
+
             failed_document.status = "failed"
-            failed_document.extraction_error = f"Failed to persist document chunks: {error}"
+            if isinstance(error, (EmbeddingValidationError, OllamaEmbeddingError, ValueError, TypeError)):
+                failed_document.extraction_error = f"Failed to embed document chunks: {error}"
+            else:
+                failed_document.extraction_error = f"Failed to persist document chunks: {error}"
 
     try:
         session.commit()

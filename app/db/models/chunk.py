@@ -2,6 +2,7 @@
 
 from datetime import datetime
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -29,6 +30,7 @@ class Chunk(Base):
     chunk_size_chars: Mapped[int] = mapped_column(nullable=False)
     chunk_overlap_chars: Mapped[int] = mapped_column(nullable=False)
     chunking_version: Mapped[str] = mapped_column(String(64), nullable=False, default="ddrag-chunking-v1")
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(1024), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -1,11 +1,14 @@
 """Application settings loaded from environment variables."""
 
 from functools import lru_cache
+from urllib.parse import urlparse
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.chunking import DEFAULT_CHUNKING_VERSION, validate_chunking_config
+
+EMBEDDING_DIMENSION = 1024
 
 
 class DatabaseSettings(BaseSettings):
@@ -34,12 +37,25 @@ class Settings(DatabaseSettings):
     chunk_size_chars: int = 1000
     chunk_overlap_chars: int = 200
     chunking_version: str = DEFAULT_CHUNKING_VERSION
+    embedding_model: str = "qwen3-embedding:0.6b"
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    embedding_dimension: int = EMBEDDING_DIMENSION
 
     @model_validator(mode="after")
     def _validate_chunking_settings(self) -> "Settings":
         validate_chunking_config(self.chunk_size_chars, self.chunk_overlap_chars)
         if not self.chunking_version.strip():
             raise ValueError("chunking_version must not be blank")
+        if not self.embedding_model.strip():
+            raise ValueError("embedding_model must not be blank")
+        candidate_base_url = self.ollama_base_url.strip()
+        if not candidate_base_url:
+            raise ValueError("ollama_base_url must not be blank")
+        parsed = urlparse(candidate_base_url)
+        if not parsed.scheme or not parsed.netloc:
+            raise ValueError("ollama_base_url must include scheme and host")
+        if self.embedding_dimension != EMBEDDING_DIMENSION:
+            raise ValueError(f"embedding_dimension must be {EMBEDDING_DIMENSION}")
         return self
 
 
