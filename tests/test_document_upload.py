@@ -59,7 +59,8 @@ def test_authenticated_upload_succeeds(monkeypatch, tmp_path: Path) -> None:
     assert body["original_filename"] == "report.pdf"
     assert body["content_type"] == "application/pdf"
     assert body["file_size_bytes"] == len(payload)
-    assert body["status"] == "uploaded"
+    # Payload is not valid PDF bytes, so synchronous extraction fails.
+    assert body["status"] == "failed"
     assert body["storage_path"] != "report.pdf"
     assert body["storage_path"].endswith(".pdf")
     assert (tmp_path / body["storage_path"]).exists()

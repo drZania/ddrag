@@ -16,6 +16,7 @@ from app.auth.dependencies import get_current_user
 from app.config import get_settings
 from app.db.models import Document, User
 from app.db.session import get_db
+from app.extraction import ExtractionError, extract_text
 from app.storage import delete_document_file, generate_storage_filename, save_document_file, sha256_bytes
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -52,6 +53,15 @@ class DocumentResponse(BaseModel):
     created_at: datetime
 
 
+class DocumentTextResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    status: str
+    extracted_text: str | None
+    extraction_error: str | None
+
+
 @router.get("", response_model=list[DocumentResponse])
 async def list_documents(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -74,6 +84,27 @@ async def get_document(
     session: Annotated[Session, Depends(get_db)],
 ) -> Document:
     """Return one document owned by the authenticated user."""
+
+    document = (
+        session.query(Document)
+        .filter_by(id=document_id, user_id=current_user.id)
+        .one_or_none()
+    )
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+    return document
+
+
+@router.get("/{document_id}/text", response_model=DocumentTextResponse)
+async def get_document_text(
+    document_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_db)],
+) -> Document:
+    """Return extraction status and text for one document owned by the authenticated user."""
 
     document = (
         session.query(Document)
@@ -181,7 +212,7 @@ async def create_document(
         content_type=file.content_type or "application/octet-stream",
         file_size_bytes=len(uploaded_bytes),
         sha256_digest=digest,
-        status="uploaded",
+        status="processing",
     )
 
     try:
@@ -213,5 +244,17 @@ async def create_document(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to record uploaded document metadata",
         ) from None
+
+    try:
+        document.extracted_text = extract_text(document.content_type, uploaded_bytes)
+        document.extraction_error = None
+        document.status = "ready"
+    except ExtractionError as error:
+        document.extracted_text = None
+        document.extraction_error = str(error)
+        document.status = "failed"
+
+    session.commit()
+    session.refresh(document)
 
     return document
