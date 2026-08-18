@@ -13,6 +13,7 @@ from sqlalchemy import exc as sqlalchemy_exc
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
+from app.chunking import persist_document_chunks
 from app.config import get_settings
 from app.db.models import Document, User
 from app.db.session import get_db
@@ -253,8 +254,41 @@ async def create_document(
         document.extracted_text = None
         document.extraction_error = str(error)
         document.status = "failed"
+    else:
+        try:
+            persist_document_chunks(
+                session,
+                document,
+                chunk_size=settings.chunk_size_chars,
+                overlap=settings.chunk_overlap_chars,
+                chunking_version=settings.chunking_version,
+            )
+        except Exception as error:
+            session.rollback()
+            failed_document = session.get(Document, document.id)
+            if failed_document is None:
+                raise
+            failed_document.status = "failed"
+            failed_document.extraction_error = f"Failed to persist document chunks: {error}"
 
-    session.commit()
+    try:
+        session.commit()
+    except Exception as error:
+        session.rollback()
+        try:
+            failed_document = session.get(Document, document.id)
+        except Exception as recovery_error:
+            raise error from recovery_error
+        if failed_document is None:
+            raise
+        failed_document.status = "failed"
+        failed_document.extraction_error = f"Failed to finalize document chunks: {error}"
+        try:
+            session.commit()
+        except Exception as recovery_error:
+            session.rollback()
+            raise error from recovery_error
+
     session.refresh(document)
 
     return document

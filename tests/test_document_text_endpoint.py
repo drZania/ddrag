@@ -36,6 +36,9 @@ def _configure_storage(monkeypatch, tmp_path: Path) -> None:
             {
                 "document_storage_path": str(tmp_path),
                 "max_upload_size_bytes": 10 * 1024 * 1024,
+                "chunk_size_chars": 1000,
+                "chunk_overlap_chars": 200,
+                "chunking_version": "ddrag-chunking-v1",
             },
         )(),
     )
