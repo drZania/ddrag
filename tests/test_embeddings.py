@@ -277,6 +277,58 @@ def test_embed_document_chunks_persists_vector_for_each_chunk(monkeypatch: pytes
         assert all(len(chunk.embedding) == 1024 for chunk in stored)
 
 
+def test_embed_document_chunks_sees_chunks_persisted_in_same_uncommitted_session(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression test: embedding must see chunks from the same session without an
+    explicit intervening commit, matching the real create_document upload flow where
+    persist_document_chunks() is immediately followed by embed_document_chunks()."""
+
+    get_settings.cache_clear()
+    monkeypatch.setenv("JWT_SECRET", "test-secret-for-settings")
+
+    with SessionLocal() as session:
+        user = User(email=f"embed-same-session-{uuid4()}@example.com")
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+
+        document = Document(
+            user_id=user.id,
+            original_filename="notes.txt",
+            storage_path=f"{uuid4()}.txt",
+            content_type="text/plain",
+            file_size_bytes=16,
+            sha256_digest=uuid4().hex,
+            status="ready",
+            extracted_text="abcdefghij klmnopqrst uvwxyz",
+        )
+        session.add(document)
+        session.commit()
+        session.refresh(document)
+
+        expected_vector = [0.1] * 1024
+
+        def fake_urlopen(request, timeout=None):
+            return _embedding_response(expected_vector)
+
+        import app.embeddings as embeddings_module
+
+        monkeypatch.setattr(embeddings_module, "urlopen", fake_urlopen)
+
+        # No session.commit()/flush() here between chunking and embedding on purpose:
+        # this reproduces the exact call order used by app/api/documents.py.
+        persist_document_chunks(session, document, chunk_size=5, overlap=0)
+        embedded = embed_document_chunks(session, document)
+        session.commit()
+
+        assert len(embedded) > 0
+        stored = session.query(Chunk).filter_by(document_id=document.id).order_by(Chunk.chunk_order.asc()).all()
+        assert len(stored) == len(embedded)
+        assert all(chunk.embedding is not None for chunk in stored)
+        assert all(len(chunk.embedding) == 1024 for chunk in stored)
+
+
 def test_embedding_failure_marks_document_failed_without_committing_chunks(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -364,3 +416,40 @@ def test_failed_reembedding_rolls_back_to_previous_chunks_and_embeddings(monkeyp
         assert document.extracted_text == "abcdefghij"
         assert [chunk.chunk_text for chunk in restored] == ["abcde", "fghij"]
         assert all(list(chunk.embedding) == old_embedding for chunk in restored)
+
+
+def test_upload_endpoint_persists_embeddings_for_every_chunk(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Regression test for the real create_document upload flow: chunks created during
+    upload must end up with embeddings, not just chunk text, so retrieval can find them."""
+
+    _configure_document_settings(monkeypatch, tmp_path)
+
+    expected_vector = [0.2] * 1024
+
+    def fake_urlopen(request, timeout=None):
+        return _embedding_response(expected_vector)
+
+    monkeypatch.setattr("app.embeddings.urlopen", fake_urlopen)
+    # Use the real embed_document_chunks instead of the autouse no-op mock.
+    monkeypatch.setattr(documents_module, "embed_document_chunks", embed_document_chunks)
+
+    token = _register_and_login()
+    response = client.post(
+        "/documents",
+        files={"file": ("notes.txt", io.BytesIO(b"abcdefghij klmno"), "text/plain")},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["status"] == "ready"
+    document_id = body["id"]
+
+    with SessionLocal() as session:
+        chunks = session.query(Chunk).filter_by(document_id=document_id).order_by(Chunk.chunk_order.asc()).all()
+        assert len(chunks) > 0
+        assert all(chunk.embedding is not None for chunk in chunks)
+        assert all(len(chunk.embedding) == 1024 for chunk in chunks)

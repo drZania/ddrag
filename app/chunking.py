@@ -98,4 +98,7 @@ def persist_document_chunks(
     ]
 
     session.add_all(records)
+    # Flush so callers querying by document_id (e.g. embed_document_chunks) see these
+    # rows immediately; the session is configured with autoflush disabled.
+    session.flush()
     return records
