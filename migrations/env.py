@@ -7,7 +7,7 @@ from sqlalchemy import engine_from_config, pool
 
 from app.config import DatabaseSettings
 from app.db.base import Base
-from app.db.models import Chunk, Document, User  # noqa: F401
+from app.db.models import ChatMessage, ChatQuery, ChatSession, Chunk, Document, QuerySource, User  # noqa: F401
 
 
 config = context.config

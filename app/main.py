@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.chat import router as chat_router
 from app.api.documents import router as documents_router
 from app.api.generation import router as generation_router
 from app.api.retrieval import router as retrieval_router
@@ -57,6 +58,7 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
 app = FastAPI(title=settings.app_name)
 app.add_middleware(RequestIdMiddleware)
 app.include_router(auth_router)
+app.include_router(chat_router)
 app.include_router(documents_router)
 app.include_router(retrieval_router)
 app.include_router(generation_router)
