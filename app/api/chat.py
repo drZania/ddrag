@@ -18,6 +18,7 @@ from app.retrieval import RetrievalValidationError
 
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+CHAT_TITLE_MAX_LENGTH = 120
 
 
 class ChatSessionResponse(BaseModel):
@@ -26,7 +27,22 @@ class ChatSessionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    title: str
     created_at: datetime
+
+
+class ChatSessionTitleUpdate(BaseModel):
+    """Validated title update for an owned chat session."""
+
+    title: str = Field(max_length=CHAT_TITLE_MAX_LENGTH)
+
+    @field_validator("title")
+    @classmethod
+    def normalize_title(cls, value: str) -> str:
+        normalized = " ".join(value.split())
+        if not normalized:
+            raise ValueError("title must not be blank")
+        return normalized
 
 
 class ChatMessageCreate(BaseModel):
@@ -95,6 +111,13 @@ def _owned_session(session: Session, current_user: User, session_id: int) -> Cha
     return chat_session
 
 
+def _title_from_question(question: str) -> str:
+    """Produce a bounded deterministic session title from the first question."""
+
+    normalized = " ".join(question.split())
+    return normalized[:CHAT_TITLE_MAX_LENGTH]
+
+
 @router.post("/sessions", response_model=ChatSessionResponse, status_code=status.HTTP_201_CREATED)
 def create_session(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -133,6 +156,36 @@ def get_session(
     """Return one chat session owned by the authenticated user."""
 
     return _owned_session(session, current_user, session_id)
+
+
+@router.patch("/sessions/{session_id}", response_model=ChatSessionResponse)
+def update_session_title(
+    session_id: int,
+    request: ChatSessionTitleUpdate,
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_db)],
+) -> ChatSession:
+    """Rename one chat session owned by the authenticated user."""
+
+    chat_session = _owned_session(session, current_user, session_id)
+    chat_session.title = request.title
+    chat_session.title_is_manual = True
+    session.commit()
+    session.refresh(chat_session)
+    return chat_session
+
+
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_session(
+    session_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_db)],
+) -> None:
+    """Delete one chat session owned by the authenticated user."""
+
+    chat_session = _owned_session(session, current_user, session_id)
+    session.delete(chat_session)
+    session.commit()
 
 
 @router.post(
@@ -198,6 +251,8 @@ def submit_question(
     """Persist and answer a question in a chat session owned by the current user."""
 
     chat_session = _owned_session(session, current_user, session_id)
+    if not chat_session.title_is_manual and not chat_session.messages:
+        chat_session.title = _title_from_question(request.question)
     user_message = ChatMessage(
         session_id=chat_session.id,
         role="user",
@@ -280,6 +335,7 @@ __all__ = [
     "ChatQuestionRequest",
     "ChatQuestionResponse",
     "ChatSessionResponse",
+    "ChatSessionTitleUpdate",
     "QuerySourceResponse",
     "router",
 ]
