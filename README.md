@@ -1,50 +1,135 @@
 # DDRAG
 
-DDRAG (Drag, Drop, Retrieve, Augment, Generate) is an independent portfolio project for building and evaluating local, document-grounded AI workflows.
+### Drag, Drop, Retrieve, Augment, Generate
 
-## Current Status
+A full-stack, document-grounded RAG application that lets users upload their own documents and ask questions about them using locally hosted language models.
 
-Milestones 1 through 5 are complete. The repository contains a small FastAPI application with typed environment-based configuration, structured request logging, request IDs, a health endpoint, a migration-managed PostgreSQL + pgvector foundation, Argon2id/JWT authentication, authenticated document ingestion management, and synchronous document text extraction.
+<p align="center">
+  <img src="docs/images/desktop-chat.png" alt="DDRAG chat workspace" width="100%">
+</p>
 
-M4 provides a document model with authenticated ownership, PostgreSQL migration support, local filesystem storage with UUID-based physical filenames, SHA-256 duplicate detection, a per-user database uniqueness constraint, a 10 MiB upload limit, an allowlist of PDF/plain-text/Markdown/DOCX MIME types, authenticated upload/list/get/delete endpoints, ownership isolation, and database/filesystem cleanup behavior. M5 adds a pure `app/extraction.py` module for the same PDF/plain-text/Markdown/DOCX formats, nullable `extracted_text`/`extraction_error` columns on `Document`, synchronous extraction during upload with `processing` -> `ready`/`failed` status transitions, and an owner-scoped `GET /documents/{document_id}/text` endpoint. Chunking, embeddings, retrieval, augmentation, generation, chat/history, React, application Docker infrastructure, and evaluation remain deferred. Milestone 6 (chunking) is next.
+<p align="center">
+  <strong>Upload documents. Ask questions. Get grounded answers with source attribution.</strong>
+</p>
 
-## Development Setup
+---
 
-From Windows PowerShell:
+## ✨ Highlights
 
-```powershell
-py -3.13 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
-Copy-Item .env.example .env
+- 📄 Document upload and processing for PDF, TXT, Markdown, and DOCX
+- 🔎 Semantic retrieval using PostgreSQL + pgvector
+- 🤖 Local LLM and embedding inference through Ollama
+- 💬 Persistent chat sessions and conversation history
+- 📚 Source attribution for retrieved document content
+- 🔐 JWT-based authentication and user-owned resources
+- 🐳 Dockerized backend and database environment
+- 📱 Responsive React interface for desktop and mobile
+- 🧪 Automated backend test suite
+
+---
+
+## 🛠 Tech Stack
+
+**Frontend**
+
+React · TypeScript · Vite · Chakra UI
+
+**Backend**
+
+Python · FastAPI · SQLAlchemy · Alembic
+
+**AI / RAG**
+
+Ollama · Embeddings · Semantic Retrieval · Grounded Generation
+
+**Data**
+
+PostgreSQL · pgvector
+
+**Infrastructure**
+
+Docker · Docker Compose
+
+**Testing**
+
+pytest
+
+---
+
+## 📸 Interface
+
+### Document Management
+
+<p align="center">
+  <img src="docs/images/desktop-documents.png" alt="DDRAG document management workspace" width="90%">
+</p>
+
+Upload documents, monitor processing status, and manage the document library from the workspace.
+
+### Responsive Chat
+
+<p align="center">
+  <img src="docs/images/mobile-chat.png" alt="DDRAG mobile chat interface" width="35%">
+</p>
+
+The chat workspace adapts to smaller screens while preserving the core document-grounded question-answering experience.
+
+---
+
+## 🧠 How It Works
+
+DDRAG follows a Retrieval-Augmented Generation pipeline:
+
+```text
+Document
+   ↓
+Text Extraction
+   ↓
+Chunking
+   ↓
+Embeddings
+   ↓
+PostgreSQL + pgvector
+   ↓
+Semantic Retrieval
+   ↓
+Context Construction
+   ↓
+Local LLM
+   ↓
+Grounded Answer + Sources
 ```
 
-Set a long, random `JWT_SECRET` in `.env` before using registration or login. Passwords must be at least 8 characters; email addresses are trimmed and lowercased.
+For the complete system design and implementation details:
 
-Run the application:
+**→ [Read the Architecture](docs/ARCHITECTURE.md)**
 
-```powershell
-python -m uvicorn app.main:app --reload
-```
+---
 
-The application is available at `http://127.0.0.1:8000`. Run the tests with:
+## 🚀 Running DDRAG
 
-```powershell
-python -m pytest
-```
+DDRAG can be run locally using Docker, PostgreSQL, Ollama, and the React frontend.
 
-Start the local database dependency with Docker Compose. Docker is used here only for isolated PostgreSQL + pgvector development; the FastAPI application is not containerized in M2.
+For prerequisites, environment configuration, setup instructions, database initialization, testing, and troubleshooting:
 
-```powershell
-$env:POSTGRES_DB="ddrag"
-$env:POSTGRES_USER="ddrag"
-$env:POSTGRES_PASSWORD="ddrag_dev_password"
-docker compose up -d
-$env:DATABASE_URL="postgresql+psycopg://ddrag:ddrag_dev_password@127.0.0.1:55432/ddrag"
-.\.venv\Scripts\alembic.exe upgrade head
-```
+**→ [Read the Development Guide](docs/DEVELOPMENT.md)**
 
-See the [development guide](docs/DEVELOPMENT_GUIDE.md), [M1 record](docs/milestones/MILESTONE_01_FOUNDATION.md), and [M2 record](docs/milestones/MILESTONE_02_DATABASE.md) for more detail.
-See the [M3 record](docs/milestones/MILESTONE_03_AUTHENTICATION.md) for the authentication flow and security decisions.
-See the [M4 record](docs/milestones/MILESTONE_04_DOCUMENT_INGESTION.md) for document ownership, storage, API behavior, and verification.
-See the [M5 record](docs/milestones/MILESTONE_05_TEXT_EXTRACTION.md) for the extraction module, synchronous lifecycle, persistence, and verification.
+---
+
+## 🔭 Future Work
+
+A dedicated evaluation phase is planned to benchmark the RAG pipeline across areas such as retrieval quality, answer faithfulness, latency, embedding models, LLMs, and prompt strategies.
+
+---
+
+## 📌 About
+
+DDRAG is a personal portfolio project focused on practical backend engineering, Retrieval-Augmented Generation, local LLM integration, and full-stack application development.
+
+The project was built to explore how an LLM-powered application can be designed as a complete system—from document ingestion and vector retrieval to grounded generation, authentication, persistence, and a responsive user interface.
+
+---
+
+## 📄 License
+
+MIT License. See [`LICENSE`](LICENSE).
