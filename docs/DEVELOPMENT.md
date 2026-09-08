@@ -76,6 +76,8 @@ cp .env.example .env
 
 For local development, the provided example already contains development defaults for PostgreSQL, JWT authentication, document storage, chunking, embeddings, retrieval, and Ollama.
 
+Before starting DDRAG, replace `JWT_SECRET=development-only-placeholder-change-this-value` with a unique local secret. The checked-in value is deliberately non-production and must never be used for a public deployment.
+
 > The `.env` file is for your local machine. Do not commit real secrets or credentials to Git.
 
 ---
@@ -370,7 +372,9 @@ docker compose down
 
 This stops the PostgreSQL and FastAPI containers.
 
-Your database and uploaded document data are stored in Docker-managed volumes, so stopping the containers does not normally remove that data. The Compose configuration defines persistent volumes for both PostgreSQL and document storage.
+Your database and uploaded document data are stored in Docker-managed named volumes, so `docker compose down` does not remove that data. The Compose configuration defines persistent volumes for both PostgreSQL and document storage.
+
+Compose derives volume names from its project name. Cloning DDRAG into another folder on the same Docker host can reconnect to existing DDRAG volumes if Compose resolves both folders to the same project name. Use `docker compose ls` and `docker volume ls` when checking which local state a checkout is using.
 To start the application again:
 
 ```bash
@@ -379,18 +383,17 @@ docker compose up -d
 
 ---
 
-# 11. Resetting the Development Database
+# 11. Development Reset
 
-If you intentionally want to start with a completely fresh database:
+If you intentionally want to permanently delete all local DDRAG Docker state:
 
 ```bash
 docker compose down -v
-docker compose up -d
 ```
 
-> **Warning:** `docker compose down -v` removes the Docker volumes, including the PostgreSQL data volume. This deletes your local development database.
+> **Warning:** `docker compose down -v` permanently removes this Compose project's PostgreSQL and document-storage volumes. It deletes local users, documents and uploaded files, chunks and embeddings, chats and messages, and all other PostgreSQL state. It cannot be undone without a backup.
 
-Use this only when you want to reset the application state.
+Use this only when you want to reset the application state. Start a newly initialized environment afterward with `docker compose up -d`; the backend applies all Alembic migrations automatically.
 
 ---
 
@@ -480,7 +483,29 @@ http://localhost:8000
 
 # 14. Running Tests
 
-With the development dependencies installed:
+The tests require a dedicated PostgreSQL database. They refuse to use SQLite or any database whose name does not contain `test`, and they clear application records between tests. Never point `TEST_DATABASE_URL` at a development or production database.
+
+Create a separate test database on the local Compose PostgreSQL service once:
+
+```bash
+docker compose exec postgres createdb -U ddrag ddrag_test
+```
+
+Apply migrations to that database. In PowerShell:
+
+```powershell
+$env:DATABASE_URL="postgresql+psycopg://ddrag:ddrag_dev_password@127.0.0.1:55432/ddrag_test"
+python -m alembic upgrade head
+Remove-Item Env:DATABASE_URL
+```
+
+In Linux/macOS:
+
+```bash
+DATABASE_URL="postgresql+psycopg://ddrag:ddrag_dev_password@127.0.0.1:55432/ddrag_test" python -m alembic upgrade head
+```
+
+Set `TEST_DATABASE_URL` in your ignored `.env` as shown in `.env.example`. With the development dependencies installed:
 
 ```bash
 pytest
@@ -594,6 +619,8 @@ docker compose up -d --build
 ```bash
 docker compose down -v
 ```
+
+This is the destructive development reset described above. It removes both named volumes and all application data; plain `docker compose down` preserves them.
 
 ---
 

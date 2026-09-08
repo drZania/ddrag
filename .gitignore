@@ -149,6 +149,9 @@ activemq-data/
 
 # Environments
 .env
+.env.*
+!.env.example
+!frontend/.env.example
 .envrc
 .venv/
 env/
@@ -224,3 +227,21 @@ __marimo__/
 # Local generated application data
 uploads/
 model-artifacts/
+
+# Runtime document storage
+storage/documents/*
+!storage/documents/.gitkeep
+
+# Local database files
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-shm
+*.sqlite3-wal
