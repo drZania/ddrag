@@ -29,7 +29,7 @@ DDRAG follows a Retrieval-Augmented Generation (RAG) architecture:
        Authentication        Document Pipeline        Chat System
               │                     │                     │
               │                     ▼                     │
-              │              Text Extraction             │
+              │              Text Extraction              │
               │                     │                     │
               │                     ▼                     │
               │                 Chunking                  │
@@ -87,13 +87,13 @@ DDRAG is divided into several logical layers.
                         ▼
 ┌───────────────────────────────────────────────┐
 │                 FastAPI Routes                │
-│      Authentication · Documents · Chat       │
+│      Authentication · Documents · Chat        │
 └───────────────────────┬───────────────────────┘
                         │
                         ▼
 ┌───────────────────────────────────────────────┐
 │                Application Logic              │
-│ Extraction · Chunking · Retrieval · Answering│
+│ Extraction · Chunking · Retrieval · Answering │
 └───────────────────────┬───────────────────────┘
                         │
               ┌─────────┴─────────┐
@@ -687,10 +687,10 @@ The Compose stack contains:
 ┌─────────────────────────────────────────┐
 │              Docker Compose             │
 │                                         │
-│  ┌──────────────┐   ┌────────────────┐ │
-│  │   Backend    │──▶│   PostgreSQL   │ │
-│  │   FastAPI    │   │   + pgvector   │ │
-│  └──────┬───────┘   └────────────────┘ │
+│  ┌──────────────┐   ┌────────────────┐  │
+│  │   Backend    │──▶│   PostgreSQL   │  │
+│  │   FastAPI    │   │   + pgvector   │  │
+│  └──────┬───────┘   └────────────────┘  │
 │         │                               │
 └─────────┼───────────────────────────────┘
           │
@@ -776,11 +776,11 @@ Important invariants are reinforced through PostgreSQL constraints, foreign keys
 
 ## PostgreSQL + pgvector
 
-DDRAG uses PostgreSQL as both the relational database and vector store. This keeps document metadata, ownership, chunks, and embeddings within one persistence system while avoiding an additional vector database for the current scope.
+DDRAG uses PostgreSQL as both the relational database and vector store. This keeps document metadata, ownership, chunks, and embeddings within one transactional system and avoids operating a separate vector database. A specialized vector store may offer better distributed scaling or advanced retrieval features if the corpus grows substantially.
 
 ## Synchronous document processing
 
-Document extraction, chunking, and embedding currently occur during the upload workflow. This keeps the architecture simple and explicit, which is appropriate for the project's current scope.
+Document extraction, chunking, and embedding currently occur during the upload workflow. This keeps state transitions and failure handling explicit without job infrastructure. It also makes upload latency depend on document size and local model speed; production-scale ingestion would move this work to an idempotent background queue.
 
 ## Separate retrieval and generation layers
 
@@ -788,15 +788,35 @@ Retrieval and generation are implemented as separate responsibilities. This make
 
 ## Backend-controlled source attribution
 
-Source metadata originates from the retrieval/generation pipeline and is passed to the frontend. The frontend does not construct or infer citations.
+Source metadata originates from the retrieval/generation pipeline, is persisted, and is passed to the frontend. The frontend does not construct or infer citations. Ordinal-ID validation catches citations outside the supplied context, but does not replace claim-level faithfulness evaluation.
 
 ## Thin frontend
 
-The React application consumes backend APIs instead of duplicating RAG or ownership logic. This keeps business rules centralized.
+The React application consumes backend APIs instead of duplicating RAG or ownership logic. This keeps business rules centralized, with the normal tradeoff that interface behavior depends on clear API contracts and error states.
 
 ## Local model inference
 
-Ollama provides local embedding and generation services, allowing the application to operate without requiring a hosted LLM API for its core workflow.
+Ollama provides local embedding and generation services, allowing the application to operate without a hosted LLM API or per-request fee. Model downloads, throughput, and latency therefore depend on the local machine.
+
+## Deterministic chunking
+
+Fixed character windows and stored chunking metadata make reprocessing predictable and testable. This favors simplicity over token-aware or document-structure-aware boundaries; semantic chunking is a future retrieval-quality improvement.
+
+## User-owned resources
+
+The backend derives ownership from the authenticated user and scopes document, retrieval, and chat queries accordingly. This prevents the client from selecting an ownership identity, while requiring every new resource path to preserve that invariant.
+
+## SQLAlchemy + Alembic migrations
+
+ORM models keep relationships and constraints visible in application code, while Alembic provides an ordered, reviewable schema history. This makes fresh environments reproducible but requires migration review whenever the data model changes.
+
+## Dockerized backend and database
+
+Docker Compose pins the backend and pgvector-capable PostgreSQL runtime and applies migrations before FastAPI starts. Ollama and Vite remain host processes, which supports local inference and frontend iteration but means Compose is not a one-command production deployment.
+
+## Dedicated test database safety gate
+
+Persistence tests run against PostgreSQL to exercise pgvector behavior. Because fixtures truncate application tables, startup requires `TEST_DATABASE_URL`, rejects non-PostgreSQL URLs, and refuses database names without `test`; this favors safety over zero-configuration test execution.
 
 ---
 

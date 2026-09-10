@@ -4,7 +4,7 @@ This guide shows how to run DDRAG locally from a fresh clone.
 
 If you only want to **try the application**, follow the **Quick Start** section. You do not need to understand the backend internals first.
 
-If you want to **develop the backend**, see [Backend Development](#backend-development).
+If you want to **develop the backend**, see [Backend Development](#12-backend-development).
 
 For the system architecture, see [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
@@ -52,7 +52,7 @@ This is the recommended setup for someone cloning DDRAG for the first time.
 ## Step 1 — Clone the repository
 
 ```bash
-git clone <YOUR_REPOSITORY_URL>
+git clone https://github.com/drZania/ddrag.git
 cd ddrag
 ```
 
@@ -230,7 +230,7 @@ cd frontend
 Install the frontend dependencies:
 
 ```bash
-npm install
+npm ci
 ```
 
 Create the frontend environment file:
@@ -247,11 +247,13 @@ Copy-Item .env.example .env
 cp .env.example .env
 ```
 
-Set:
+Keep the local development value empty:
 
 ```text
-VITE_API_BASE_URL=http://localhost:8000
+VITE_API_BASE_URL=
 ```
+
+Vite then proxies API requests to `http://127.0.0.1:8000`, avoiding a cross-origin browser request during local development. Set an explicit API base URL only for an environment whose backend is configured to accept requests from that frontend origin.
 
 Then start the development server:
 
@@ -713,10 +715,10 @@ Then check:
 frontend/.env
 ```
 
-The API base URL should point to:
+For local Vite development, the API base URL should remain empty so requests use the configured development proxy:
 
 ```text
-VITE_API_BASE_URL=http://localhost:8000
+VITE_API_BASE_URL=
 ```
 
 Restart the Vite development server after changing environment variables.

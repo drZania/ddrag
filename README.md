@@ -1,135 +1,167 @@
 # DDRAG
 
-### Drag, Drop, Retrieve, Augment, Generate
+**Drag, Drop, Retrieve, Augment, Generate**
 
-A full-stack, document-grounded RAG application that lets users upload their own documents and ask questions about them using locally hosted language models.
+DDRAG is a local-first retrieval-augmented generation (RAG) application for asking questions about your own documents. It accepts PDF, DOCX, Markdown, and text files, retrieves relevant passages with PostgreSQL and pgvector, and generates answers locally through Ollama with source attribution.
 
-<p align="center">
-  <img src="docs/images/desktop-chat.png" alt="DDRAG chat workspace" width="100%">
-</p>
+## Demo
 
-<p align="center">
-  <strong>Upload documents. Ask questions. Get grounded answers with source attribution.</strong>
-</p>
+🎥 **[Watch the DDRAG demo on YouTube](https://youtu.be/F0H7eqERpBA)**
 
----
+The video demonstrates account creation, document ingestion, semantic retrieval, grounded answers with sources, and persistent chat history.
 
-## ✨ Highlights
+DDRAG runs locally with Docker, PostgreSQL + pgvector, and Ollama, keeping documents and model inference on the local machine.
 
-- 📄 Document upload and processing for PDF, TXT, Markdown, and DOCX
-- 🔎 Semantic retrieval using PostgreSQL + pgvector
-- 🤖 Local LLM and embedding inference through Ollama
-- 💬 Persistent chat sessions and conversation history
-- 📚 Source attribution for retrieved document content
-- 🔐 JWT-based authentication and user-owned resources
-- 🐳 Dockerized backend and database environment
-- 📱 Responsive React interface for desktop and mobile
-- 🧪 Automated backend test suite
-
----
-
-## 🛠 Tech Stack
-
-**Frontend**
-
-React · TypeScript · Vite · Chakra UI
-
-**Backend**
-
-Python · FastAPI · SQLAlchemy · Alembic
-
-**AI / RAG**
-
-Ollama · Embeddings · Semantic Retrieval · Grounded Generation
-
-**Data**
-
-PostgreSQL · pgvector
-
-**Infrastructure**
-
-Docker · Docker Compose
-
-**Testing**
-
-pytest
-
----
-
-## 📸 Interface
-
-### Document Management
+### Interface preview
 
 <p align="center">
-  <img src="docs/images/desktop-documents.png" alt="DDRAG document management workspace" width="90%">
+  <img src="docs/images/desktop-chat.png" alt="DDRAG desktop chat showing a grounded answer, source attribution, and chat history" width="100%">
 </p>
 
-Upload documents, monitor processing status, and manage the document library from the workspace.
-
-### Responsive Chat
+*A grounded response with its retrieved source metadata and a persisted chat session.*
 
 <p align="center">
-  <img src="docs/images/mobile-chat.png" alt="DDRAG mobile chat interface" width="35%">
+  <img src="docs/images/desktop-documents.png" alt="DDRAG document library showing upload controls and a processed document" width="88%">
 </p>
 
-The chat workspace adapts to smaller screens while preserving the core document-grounded question-answering experience.
+*Document upload, processing feedback, and the authenticated user's document library.*
 
----
+<p align="center">
+  <img src="docs/images/mobile-chat.png" alt="DDRAG responsive mobile chat interface" width="34%">
+</p>
 
-## 🧠 How It Works
+*The chat workflow adapted for a narrow viewport.*
 
-DDRAG follows a Retrieval-Augmented Generation pipeline:
+## Features
+
+- JWT authentication with Argon2id password hashing and user-owned resources
+- PDF, DOCX, Markdown, and TXT ingestion with file validation and duplicate detection
+- deterministic, overlapping text chunks with versioned chunking metadata
+- local embeddings and answer generation through Ollama
+- owner-scoped cosine-distance retrieval with PostgreSQL + pgvector
+- grounded prompts, source citations, and persistent chat history
+- responsive React interface
+
+## How It Works
 
 ```text
-Document
-   ↓
-Text Extraction
-   ↓
-Chunking
-   ↓
-Embeddings
-   ↓
-PostgreSQL + pgvector
-   ↓
-Semantic Retrieval
-   ↓
-Context Construction
-   ↓
-Local LLM
-   ↓
-Grounded Answer + Sources
+Upload document → Extract text → Create overlapping chunks → Generate embeddings
+       → Store in PostgreSQL + pgvector → Retrieve relevant owned chunks
+       → Build grounded context → Generate locally → Return answer + sources
 ```
 
-For the complete system design and implementation details:
+The backend treats retrieved text as reference material and instructs the model to answer from the supplied context. When retrieval finds no relevant chunks, DDRAG returns an insufficient-information response without calling the generation model.
 
-**→ [Read the Architecture](docs/ARCHITECTURE.md)**
+## Architecture
 
----
+```text
+Browser / React + Vite
+          │ REST
+          ▼
+       FastAPI
+          │
+   ┌──────┼──────────────┐
+   ▼      ▼              ▼
+ Auth  Documents       Chats
+          │              │
+          ├── local document storage
+          ├── PostgreSQL + pgvector
+          └── Ollama (embeddings + generation)
+```
 
-## 🚀 Running DDRAG
+FastAPI handles authentication, authorization, ingestion, retrieval, generation, and persistence. The React frontend consumes the backend API. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for request flows, the data model, security boundaries, and detailed tradeoffs.
 
-DDRAG can be run locally using Docker, PostgreSQL, Ollama, and the React frontend.
+## Tech Stack
 
-For prerequisites, environment configuration, setup instructions, database initialization, testing, and troubleshooting:
+| Area | Technologies |
+| --- | --- |
+| Frontend | React, TypeScript, Vite, Chakra UI |
+| Backend | Python 3.13, FastAPI, SQLAlchemy, Alembic |
+| RAG | Ollama, vector embeddings, cosine-distance retrieval, grounded prompting |
+| Data | PostgreSQL 16, pgvector, local document storage |
+| Runtime | Docker, Docker Compose |
+| Testing | pytest, dedicated PostgreSQL test database |
 
-**→ [Read the Development Guide](docs/DEVELOPMENT.md)**
+## Quick Start
 
----
+Prerequisites: Git, Docker with Docker Compose, Ollama, and Node.js with npm. Python 3.13 is only required when running the backend outside Docker.
 
-## 🔭 Future Work
+### Option 1 — Coding agent
 
-A dedicated evaluation phase is planned to benchmark the RAG pipeline across areas such as retrieval quality, answer faithfulness, latency, embedding models, LLMs, and prompt strategies.
+Paste this into a repository-capable coding agent:
 
----
+```text
+Set up DDRAG from https://github.com/drZania/ddrag.git for local development.
+Follow the repository's AGENTS.md for prerequisites, environment setup, Ollama models, Docker services, frontend setup, and verification.
+Preserve any existing environment files, databases, and Docker volumes.
+```
 
-## 📌 About
+### Option 2 — Manual setup
 
-DDRAG is a personal portfolio project focused on practical backend engineering, Retrieval-Augmented Generation, local LLM integration, and full-stack application development.
+Clone the repository:
 
-The project was built to explore how an LLM-powered application can be designed as a complete system—from document ingestion and vector retrieval to grounded generation, authentication, persistence, and a responsive user interface.
+```bash
+git clone https://github.com/drZania/ddrag.git
+cd ddrag
+```
 
----
+Create the backend environment file. Use `Copy-Item .env.example .env` in PowerShell or `cp .env.example .env` on Linux/macOS. Replace the checked-in `JWT_SECRET` placeholder in `.env` with a unique local value.
 
-## 📄 License
+Pull the local models and start the database and backend:
 
-MIT License. See [`LICENSE`](LICENSE).
+```bash
+ollama pull qwen3-embedding:0.6b
+ollama pull qwen2.5:1.5b
+docker compose up -d
+```
+
+In a second terminal, prepare and start the frontend:
+
+```bash
+cd frontend
+npm ci
+# PowerShell: Copy-Item .env.example .env
+# Linux/macOS: cp .env.example .env
+npm run dev
+```
+
+Open the Vite URL, normally `http://localhost:5173`. The backend applies Alembic migrations on startup and exposes `http://localhost:8000/health`.
+
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for detailed Windows, Linux, and macOS setup, backend development, test database setup, reset behavior, and troubleshooting.
+
+## Testing
+
+Backend tests require `TEST_DATABASE_URL` to point to a dedicated PostgreSQL database whose name contains `test`. Never point it at the development database. See [Running Tests](docs/DEVELOPMENT.md#14-running-tests) before running `pytest`.
+
+Frontend checks:
+
+```bash
+cd frontend
+npm run lint
+npm run typecheck
+npm run build
+```
+
+## Design Highlights
+
+- **PostgreSQL + pgvector** keeps relational ownership data, document chunks, and embeddings in one transactional data store.
+- **Local inference through Ollama** keeps embedding and generation requests on the local machine.
+- **Grounded source attribution** persists the retrieved chunks used for an answer so the interface can display backend-provided sources.
+- **Backend-enforced ownership** derives resource access from the authenticated user and scopes document, retrieval, and chat queries server-side.
+
+See [Key Design Decisions](docs/ARCHITECTURE.md#21-key-design-decisions) for detailed tradeoffs and architecture discussion.
+
+## Project Structure
+
+```text
+app/                    FastAPI application and RAG pipeline
+frontend/src/           React interface and API client
+migrations/             Alembic schema history
+tests/                  Backend tests and database safety setup
+docs/ARCHITECTURE.md    System design and request flows
+docs/DEVELOPMENT.md     Detailed local development guide
+```
+
+## License
+
+MIT License. See [LICENSE](LICENSE).
